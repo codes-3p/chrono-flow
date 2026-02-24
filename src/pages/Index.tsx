@@ -24,12 +24,12 @@ const Index = () => {
         </p>
       </motion.header>
 
-      {/* Export button */}
+      {/* Floating Export button */}
       <motion.div
-        className="flex justify-center mb-6 md:mb-8"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
+        className="fixed bottom-6 right-6 z-50"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.6, type: "spring", stiffness: 300 }}
       >
         <ExportButton events={timelineEvents} />
       </motion.div>
