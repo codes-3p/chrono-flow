@@ -122,11 +122,20 @@ export const slideTemplates: SlideTemplate[] = [
   },
 ];
 
+export interface StatItem {
+  value: string;
+  label: string;
+  icon?: string;
+}
+
 export interface GeneratedSlide {
   title: string;
   content: string[];
   notes?: string;
-  layout: "title" | "content" | "two-column" | "image" | "quote" | "closing";
+  layout: "title" | "content" | "two-column" | "image" | "quote" | "closing" | "stats" | "highlight";
+  stats?: StatItem[];
+  highlight?: string;
+  icon?: string;
 }
 
 export interface GeneratedPresentation {
