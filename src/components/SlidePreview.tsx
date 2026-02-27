@@ -35,7 +35,9 @@ const SlidePreview = ({ document, template, index, total, isActive, onClick }: S
   } else if (background) {
     bgStyle.background = `#${background}`;
   } else {
-    bgStyle.background = template.colors.secondary;
+    bgStyle.background = template.colors.secondary.startsWith("#") 
+      ? template.colors.secondary 
+      : `#${template.colors.secondary}`;
   }
   
   return (
@@ -72,6 +74,11 @@ const SlidePreview = ({ document, template, index, total, isActive, onClick }: S
  */
 function SlideElement({ element }: { element: PtElement }) {
   if (element.type === "text") {
+    // Normalizar cor - garantir que tem #
+    const textColor = element.color 
+      ? (element.color.startsWith("#") ? element.color : `#${element.color}`)
+      : "#FFFFFF";
+    
     return (
       <div
         className="absolute whitespace-pre-wrap"
@@ -82,7 +89,7 @@ function SlideElement({ element }: { element: PtElement }) {
           height: element.h ? `${inchToPctY(element.h)}%` : "auto",
           fontSize: element.fontSize ? `${element.fontSize * 0.26}rem` : undefined,
           fontFamily: element.fontFace || "Arial, sans-serif",
-          color: element.color ? `#${element.color}` : "#FFFFFF",
+          color: textColor,
           fontWeight: element.bold ? "bold" : "normal",
           fontStyle: element.italic ? "italic" : "normal",
           textAlign: element.align || "left",
@@ -94,7 +101,7 @@ function SlideElement({ element }: { element: PtElement }) {
         {element.bullet && (
           <span 
             className="absolute left-0"
-            style={{ color: `#${element.color}` }}
+            style={{ color: textColor }}
           >
             •
           </span>
@@ -106,6 +113,8 @@ function SlideElement({ element }: { element: PtElement }) {
   
   // Shape (rect)
   const shape = element as PtShapeElement;
+  const shapeColor = shape.fill.startsWith("#") ? shape.fill : `#${shape.fill}`;
+  
   return (
     <div
       className="absolute rounded-sm"
@@ -114,9 +123,9 @@ function SlideElement({ element }: { element: PtElement }) {
         top: `${inchToPctY(shape.y)}%`,
         width: `${inchToPctX(shape.w)}%`,
         height: `${inchToPctY(shape.h)}%`,
-        backgroundColor: `#${shape.fill}`,
+        backgroundColor: shapeColor,
         borderRadius: shape.borderRadius ? `${shape.borderRadius}px` : "0",
-        border: shape.stroke ? `${shape.strokeWidth || 1}px solid #${shape.stroke}` : "none",
+        border: shape.stroke ? `${shape.strokeWidth || 1}px solid ${shape.stroke.startsWith("#") ? shape.stroke : `#${shape.stroke}`}` : "none",
       }}
     />
   );
