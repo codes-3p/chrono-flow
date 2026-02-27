@@ -1,50 +1,125 @@
+n/**
+ * SlidePreview: Preview visual de slides usando o modelo PtDocument
+ * Este componente renderiza os elementos conforme definidos no modelo
+ */
+
 import { motion } from "framer-motion";
-import { GeneratedSlide, SlideTemplate } from "@/data/templates";
+import { PtDocument, PtElement, PtShapeElement, PtTextElement, inchToPctX, inchToPctY } from "@/lib/pptxModel";
 
 interface SlidePreviewProps {
-  slide: GeneratedSlide;
-  template: SlideTemplate;
+  document: PtDocument;
+  template: {
+    colors: { primary: string; secondary: string; accent: string };
+  };
   index: number;
+  total: number;
   isActive: boolean;
   onClick: () => void;
 }
 
-const SlidePreview = ({ slide, template, index, isActive, onClick }: SlidePreviewProps) => {
+const SlidePreview = ({ document, template, index, total, isActive, onClick }: SlidePreviewProps) => {
+  const slide = document.slides[index];
+  
+  if (!slide) return null;
+  
+  const { elements, background, backgroundGradient } = slide;
+  
+  // Determinar background
+  let bgStyle: React.CSSProperties = {};
+  if (backgroundGradient) {
+    if (backgroundGradient.type === "linear") {
+      bgStyle.background = `linear-gradient(${backgroundGradient.angle || 135}deg, ${backgroundGradient.colors.join(", ")})`;
+    } else {
+      bgStyle.background = `radial-gradient(circle, ${backgroundGradient.colors.join(", ")})`;
+    }
+  } else if (background) {
+    bgStyle.background = `#${background}`;
+  } else {
+    bgStyle.background = template.colors.secondary;
+  }
+  
   return (
-    <motion.button
-      onClick={onClick}
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className={`w-full text-left rounded-lg overflow-hidden transition-all duration-200 ${
-        isActive ? "ring-2 ring-primary scale-[1.02]" : "opacity-70 hover:opacity-100"
-      }`}
+      className={`
+        relative aspect-video rounded-lg overflow-hidden cursor-pointer
+        transition-all duration-200 border-2
+        ${isActive 
+          ? "border-purple-500 shadow-lg shadow-purple-500/30" 
+          : "border-transparent hover:border-purple-300"
+        }
+      `}
+      style={bgStyle}
+      onClick={onClick}
     >
-      <div
-        className="aspect-video p-3 flex flex-col justify-between"
-        style={{
-          background: slide.layout === "title" || slide.layout === "closing"
-            ? `linear-gradient(135deg, ${template.colors.primary}, ${template.colors.secondary})`
-            : template.colors.secondary,
-        }}
-      >
-        <p className="text-[8px] font-bold text-primary-foreground/90 truncate leading-tight">
-          {slide.title}
-        </p>
-        {slide.content.length > 0 && slide.layout !== "title" && (
-          <div className="space-y-0.5 mt-1">
-            {slide.content.slice(0, 3).map((c, i) => (
-              <div key={i} className="flex items-start gap-1">
-                <div className="w-0.5 h-0.5 rounded-full bg-primary-foreground/40 mt-[3px] shrink-0" />
-                <p className="text-[5px] text-primary-foreground/60 truncate">{c}</p>
-              </div>
-            ))}
-          </div>
-        )}
-        <p className="text-[6px] text-primary-foreground/30 text-right">{index + 1}</p>
+      {/* Elementos do slide */}
+      {elements.map((el, i) => (
+        <SlideElement key={i} element={el} />
+      ))}
+      
+      {/* Número do slide */}
+      <div className="absolute bottom-2 right-3 text-xs text-white/30 font-mono">
+        {index + 1} / {total}
       </div>
-    </motion.button>
+    </motion.div>
   );
 };
+
+/**
+ * Renderiza um elemento individual (texto ou shape)
+ */
+function SlideElement({ element }: { element: PtElement }) {
+  if (element.type === "text") {
+    return (
+      <div
+        className="absolute whitespace-pre-wrap"
+        style={{
+          left: `${inchToPctX(element.x)}%`,
+          top: `${inchToPctY(element.y)}%`,
+          width: `${inchToPctX(element.w)}%`,
+          height: element.h ? `${inchToPctY(element.h)}%` : "auto",
+          fontSize: element.fontSize ? `${element.fontSize * 0.26}rem` : undefined,
+          fontFamily: element.fontFace || "Arial, sans-serif",
+          color: element.color ? `#${element.color}` : "#FFFFFF",
+          fontWeight: element.bold ? "bold" : "normal",
+          fontStyle: element.italic ? "italic" : "normal",
+          textAlign: element.align || "left",
+          paddingLeft: element.bullet ? "1em" : 0,
+          position: "relative",
+          opacity: element.opacity ?? 1,
+        }}
+      >
+        {element.bullet && (
+          <span 
+            className="absolute left-0"
+            style={{ color: `#${element.color}` }}
+          >
+            •
+          </span>
+        )}
+        {element.text}
+      </div>
+    );
+  }
+  
+  // Shape (rect)
+  const shape = element as PtShapeElement;
+  return (
+    <div
+      className="absolute rounded-sm"
+      style={{
+        left: `${inchToPctX(shape.x)}%`,
+        top: `${inchToPctY(shape.y)}%`,
+        width: `${inchToPctX(shape.w)}%`,
+        height: `${inchToPctY(shape.h)}%`,
+        backgroundColor: `#${shape.fill}`,
+        borderRadius: shape.borderRadius ? `${shape.borderRadius}px` : "0",
+        border: shape.stroke ? `${shape.strokeWidth || 1}px solid #${shape.stroke}` : "none",
+      }}
+    />
+  );
+}
 
 export default SlidePreview;
