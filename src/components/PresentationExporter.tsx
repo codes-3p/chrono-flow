@@ -10,97 +10,184 @@ interface PresentationExporterProps {
 const PresentationExporter = ({ presentation }: PresentationExporterProps) => {
   const exportToPPTX = () => {
     const pptx = new pptxgen();
-    pptx.layout = "LAYOUT_WIDE";
+    pptx.layout = "LAYOUT_WIDE"; // 13.33 x 7.5
 
     const { template, slides } = presentation;
     const primaryHex = template.colors.primary.replace("#", "");
     const secondaryHex = template.colors.secondary.replace("#", "");
     const accentHex = template.colors.accent.replace("#", "");
 
-    slides.forEach((slide, i) => {
+    // Slide dimensions
+    const W = 13.33;
+    const H = 7.5;
+    const padX = 0.8;
+    const padY = 0.8;
+
+    slides.forEach((slide, idx) => {
       const s = pptx.addSlide();
       const isCover = slide.layout === "title" || slide.layout === "closing";
       const isQuote = slide.layout === "quote";
 
-      // Background
-      s.background = { fill: isCover ? primaryHex : secondaryHex };
+      // ── Background ──
+      if (isCover) {
+        // Gradient background matching the web: linear-gradient(135deg, primary, secondary)
+        s.background = {
+          fill: { type: "solid", color: secondaryHex },
+        } as any;
+        // Overlay gradient via a full-slide shape
+        s.addShape(pptx.ShapeType.rect, {
+          x: 0, y: 0, w: W, h: H,
+          fill: {
+            type: "solid",
+            color: primaryHex,
+          },
+          rectRadius: 0,
+        });
+        // Second layer for gradient effect (darker bottom-right)
+        s.addShape(pptx.ShapeType.rect, {
+          x: 0, y: 0, w: W, h: H,
+          fill: {
+            type: "solid",
+            color: secondaryHex,
+            alpha: 50,
+          } as any,
+        });
+      } else {
+        s.background = { fill: secondaryHex };
+      }
 
-      // Top accent line
-      s.addShape(pptx.ShapeType.rect, {
-        x: 0, y: 0, w: "100%", h: 0.04,
-        fill: { color: accentHex },
+      // ── Decorative accent glow (top-right) – mirrors the radial-gradient ──
+      s.addShape(pptx.ShapeType.ellipse, {
+        x: W * 0.55, y: -1,
+        w: W * 0.5, h: H * 0.7,
+        fill: { type: "solid", color: accentHex, alpha: 8 } as any,
       });
 
       if (isCover) {
+        // ═══ TITLE / CLOSING slide ═══
         s.addText(slide.title, {
-          x: 1, y: 2.5, w: 11.33, fontSize: 44, fontFace: "Arial",
-          color: "FFFFFF", bold: true, align: "center",
+          x: 1.5, y: H * 0.3, w: W - 3, h: 1.5,
+          fontSize: 40, fontFace: "Arial",
+          color: "FFFFFF", bold: true,
+          align: "center", valign: "middle",
+          lineSpacingMultiple: 1.1,
         });
+
         if (slide.content.length > 0) {
           s.addText(slide.content[0], {
-            x: 2, y: 4.2, w: 9.33, fontSize: 20, fontFace: "Arial",
-            color: "FFFFFF", align: "center", italic: true,
+            x: 2.5, y: H * 0.3 + 1.8, w: W - 5, h: 0.8,
+            fontSize: 18, fontFace: "Arial",
+            color: "FFFFFF",
+            transparency: 30,
+            align: "center", valign: "top",
           });
         }
       } else if (isQuote) {
-        s.addText(`"${slide.title}"`, {
-          x: 1.5, y: 2, w: 10.33, fontSize: 28, fontFace: "Arial",
-          color: "FFFFFF", align: "center", italic: true,
-          lineSpacingMultiple: 1.3,
+        // ═══ QUOTE slide ═══
+        // Big quotation mark
+        s.addText("\u201C", {
+          x: W / 2 - 0.5, y: 1.5, w: 1, h: 1,
+          fontSize: 72, fontFace: "Georgia",
+          color: accentHex, align: "center",
         });
+
+        s.addText(slide.title, {
+          x: 2, y: 2.8, w: W - 4, h: 2,
+          fontSize: 24, fontFace: "Arial",
+          color: "FFFFFF",
+          transparency: 10,
+          italic: true, align: "center", valign: "middle",
+          lineSpacingMultiple: 1.4,
+        });
+
         if (slide.content.length > 0) {
           s.addText(`— ${slide.content[0]}`, {
-            x: 1.5, y: 5, w: 10.33, fontSize: 14, fontFace: "Arial",
-            color: accentHex, align: "center",
+            x: 2, y: 5.2, w: W - 4, h: 0.5,
+            fontSize: 13, fontFace: "Arial",
+            color: "FFFFFF",
+            transparency: 50,
+            align: "center",
           });
         }
       } else {
-        // Accent bar
+        // ═══ CONTENT / TWO-COLUMN slide ═══
+
+        // Accent bar (matches the w-12 h-1 div)
         s.addShape(pptx.ShapeType.rect, {
-          x: 0.8, y: 1, w: 0.6, h: 0.06,
+          x: padX, y: padY,
+          w: 1.0, h: 0.08,
           fill: { color: accentHex },
+          rectRadius: 0.04,
         });
 
         // Title
         s.addText(slide.title, {
-          x: 0.8, y: 1.2, w: 10, fontSize: 28, fontFace: "Arial",
+          x: padX, y: padY + 0.25, w: W - padX * 2, h: 0.7,
+          fontSize: 26, fontFace: "Arial",
           color: "FFFFFF", bold: true,
+          valign: "top",
         });
 
-        // Content bullets
+        // Content area
+        const contentTop = padY + 1.3;
+        const contentH = H - contentTop - 0.8;
         const isTwo = slide.layout === "two-column";
-        const colW = isTwo ? 5.2 : 11;
+        const colCount = isTwo ? 2 : 1;
+        const colW = isTwo ? (W - padX * 2 - 0.5) / 2 : W - padX * 2;
+        const itemCount = slide.content.length;
 
-        slide.content.forEach((item, j) => {
-          const col = isTwo ? Math.floor(j / Math.ceil(slide.content.length / 2)) : 0;
-          const row = isTwo ? j % Math.ceil(slide.content.length / 2) : j;
+        slide.content.forEach((item, i) => {
+          let col: number, row: number;
+          if (isTwo) {
+            const perCol = Math.ceil(itemCount / 2);
+            col = i < perCol ? 0 : 1;
+            row = i < perCol ? i : i - perCol;
+          } else {
+            col = 0;
+            row = i;
+          }
 
+          const itemH = Math.min(contentH / Math.ceil(itemCount / colCount), 0.65);
+          const xBase = padX + col * (colW + 0.5);
+          const yBase = contentTop + row * itemH;
+
+          // Bullet dot
           s.addShape(pptx.ShapeType.ellipse, {
-            x: 0.8 + col * 5.8, y: 2.4 + row * 0.85,
+            x: xBase, y: yBase + 0.12,
             w: 0.12, h: 0.12,
             fill: { color: accentHex },
           });
 
+          // Text
           s.addText(item, {
-            x: 1.1 + col * 5.8, y: 2.25 + row * 0.85,
-            w: colW - 1, fontSize: 14, fontFace: "Arial",
-            color: "E0E0E0",
-            lineSpacingMultiple: 1.15,
+            x: xBase + 0.22, y: yBase,
+            w: colW - 0.3, h: itemH,
+            fontSize: 13, fontFace: "Arial",
+            color: "FFFFFF",
+            transparency: 20,
+            valign: "top",
+            lineSpacingMultiple: 1.2,
           });
         });
       }
 
-      // Slide number
-      s.addText(`${i + 1}`, {
-        x: 12.3, y: 7, w: 0.8, fontSize: 10, fontFace: "Arial",
-        color: "666666", align: "right",
+      // ── Slide number (bottom-right) ──
+      s.addText(`${idx + 1} / ${slides.length}`, {
+        x: W - 1.5, y: H - 0.6, w: 1.2, h: 0.3,
+        fontSize: 9, fontFace: "Consolas",
+        color: "FFFFFF",
+        transparency: 70,
+        align: "right",
       });
 
-      // Notes
+      // ── Speaker notes ──
       if (slide.notes) s.addNotes(slide.notes);
     });
 
-    const safeName = presentation.title.replace(/[^a-zA-Z0-9\u00C0-\u024F ]/g, "").trim().replace(/\s+/g, "_");
+    const safeName = presentation.title
+      .replace(/[^a-zA-Z0-9\u00C0-\u024F ]/g, "")
+      .trim()
+      .replace(/\s+/g, "_");
     pptx.writeFile({ fileName: `${safeName}.pptx` });
   };
 
