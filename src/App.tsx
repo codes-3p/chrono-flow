@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ModernDemo from "./pages/ModernDemo";
 import MockPreview from "./pages/MockPreview";
+import RealMockPreview from "./pages/RealMockPreview";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +21,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/demo" element={<ModernDemo />} />
           <Route path="/mock" element={<MockPreview />} />
+          <Route path="/real-mock" element={<RealMockPreview />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
