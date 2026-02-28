@@ -1,4 +1,4 @@
-n/**
+/**
  * SlidePreview: Preview visual de slides usando o modelo PtDocument
  * Este componente renderiza os elementos conforme definidos no modelo
  */
@@ -17,6 +17,12 @@ interface SlidePreviewProps {
   onClick: () => void;
 }
 
+// Função auxiliar para normalizar cor (garantir #)
+function normalizeColor(color: string): string {
+  if (!color) return "#000000";
+  return color.startsWith("#") ? color : `#${color}`;
+}
+
 const SlidePreview = ({ document, template, index, total, isActive, onClick }: SlidePreviewProps) => {
   const slide = document.slides[index];
   
@@ -28,16 +34,15 @@ const SlidePreview = ({ document, template, index, total, isActive, onClick }: S
   let bgStyle: React.CSSProperties = {};
   if (backgroundGradient) {
     if (backgroundGradient.type === "linear") {
-      bgStyle.background = `linear-gradient(${backgroundGradient.angle || 135}deg, ${backgroundGradient.colors.join(", ")})`;
+      bgStyle.background = `linear-gradient(${backgroundGradient.angle || 135}deg, ${backgroundGradient.colors.map(c => normalizeColor(c)).join(", ")})`;
     } else {
-      bgStyle.background = `radial-gradient(circle, ${backgroundGradient.colors.join(", ")})`;
+      bgStyle.background = `radial-gradient(circle, ${backgroundGradient.colors.map(c => normalizeColor(c)).join(", ")})`;
     }
   } else if (background) {
-    bgStyle.background = `#${background}`;
+    bgStyle.background = normalizeColor(background);
   } else {
-    bgStyle.background = template.colors.secondary.startsWith("#") 
-      ? template.colors.secondary 
-      : `#${template.colors.secondary}`;
+    // Usar cor secundária do template
+    bgStyle.background = normalizeColor(template.colors.secondary);
   }
   
   return (
@@ -47,10 +52,10 @@ const SlidePreview = ({ document, template, index, total, isActive, onClick }: S
       transition={{ delay: index * 0.05 }}
       className={`
         relative aspect-video rounded-lg overflow-hidden cursor-pointer
-        transition-all duration-200 border-2
+        transition-all duration-200 border-2 shadow-2xl
         ${isActive 
-          ? "border-purple-500 shadow-lg shadow-purple-500/30" 
-          : "border-transparent hover:border-purple-300"
+          ? "border-purple-500 shadow-lg shadow-purple-500/50 scale-105" 
+          : "border-gray-700 hover:border-purple-400 hover:scale-102"
         }
       `}
       style={bgStyle}
@@ -62,7 +67,7 @@ const SlidePreview = ({ document, template, index, total, isActive, onClick }: S
       ))}
       
       {/* Número do slide */}
-      <div className="absolute bottom-2 right-3 text-xs text-white/30 font-mono">
+      <div className="absolute bottom-2 right-3 text-xs text-white/30 font-mono pointer-events-none">
         {index + 1} / {total}
       </div>
     </motion.div>
@@ -94,7 +99,6 @@ function SlideElement({ element }: { element: PtElement }) {
           fontStyle: element.italic ? "italic" : "normal",
           textAlign: element.align || "left",
           paddingLeft: element.bullet ? "1em" : 0,
-          position: "relative",
           opacity: element.opacity ?? 1,
         }}
       >
@@ -115,17 +119,37 @@ function SlideElement({ element }: { element: PtElement }) {
   const shape = element as PtShapeElement;
   const shapeColor = shape.fill.startsWith("#") ? shape.fill : `#${shape.fill}`;
   
+  // Se o fill tiver opacidade (ex: "6366F140"), preserves the opacity
+  let backgroundColor = shapeColor;
+  let opacity = 1;
+  
+  // Verifica se a cor tem formato hex com opacidade (ex: "6366F140" ou "#6366F140")
+  const hexWithOpacity = shapeColor.match(/^#?([0-9A-F]{6})([0-9A-F]{2})$/i);
+  if (hexWithOpacity) {
+    const [, hex, alpha] = hexWithOpacity;
+    backgroundColor = `#${hex}`;
+    // Converte alpha hex para opacity (00=0, FF=1)
+    opacity = parseInt(alpha, 16) / 255;
+  }
+  
+  const strokeColor = shape.stroke 
+    ? (shape.stroke.startsWith("#") ? shape.stroke : `#${shape.stroke}`)
+    : undefined;
+  
   return (
     <div
-      className="absolute rounded-sm"
+      className="absolute"
       style={{
         left: `${inchToPctX(shape.x)}%`,
         top: `${inchToPctY(shape.y)}%`,
         width: `${inchToPctX(shape.w)}%`,
         height: `${inchToPctY(shape.h)}%`,
-        backgroundColor: shapeColor,
+        backgroundColor,
+        opacity,
         borderRadius: shape.borderRadius ? `${shape.borderRadius}px` : "0",
-        border: shape.stroke ? `${shape.strokeWidth || 1}px solid ${shape.stroke.startsWith("#") ? shape.stroke : `#${shape.stroke}`}` : "none",
+        border: strokeColor 
+          ? `${shape.strokeWidth || 1}px solid ${strokeColor}`
+          : "none",
       }}
     />
   );

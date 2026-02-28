@@ -151,12 +151,13 @@ const Index = () => {
             <div className="flex gap-6">
               {/* Sidebar thumbnails */}
               <div className="hidden md:flex flex-col gap-2 w-44 shrink-0 max-h-[calc(100vh-120px)] overflow-y-auto pr-2">
-                {presentation.slides.map((slide, i) => (
+                {presentation.slides.map((_, i) => (
                   <SlidePreview
                     key={i}
-                    slide={slide}
+                    document={presentation}
                     template={presentation.template}
                     index={i}
+                    total={presentation.slides.length}
                     isActive={i === activeSlide}
                     onClick={() => setActiveSlide(i)}
                   />
