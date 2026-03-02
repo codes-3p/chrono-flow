@@ -15,46 +15,66 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = `You are a world-class presentation designer who creates visually rich, data-driven presentations. Generate a presentation in JSON format.
-The presentation must have exactly ${slideCount || 10} slides.
+    const systemPrompt = `You are a world-class presentation designer at a top design agency (like McKinsey, Apple Keynote level). You create stunning, data-rich, visually diverse presentations that captivate audiences.
+
+Generate a presentation with exactly ${slideCount || 10} slides in JSON format.
 Language: ${language || "pt-BR"}
 Template style: ${template?.style || "modern"}
 
-Return ONLY valid JSON with this exact structure:
+Return ONLY valid JSON with this structure:
 {
   "title": "Main title",
-  "subtitle": "Subtitle",
+  "subtitle": "Compelling subtitle",
   "slides": [
     {
       "title": "Slide title",
-      "content": ["Bullet point 1", "Bullet point 2"],
-      "notes": "Speaker notes for presenter",
-      "layout": "title|content|two-column|quote|closing|stats|highlight",
-      "icon": "optional emoji for the slide topic e.g. 🚀",
-      "stats": [{"value": "95%", "label": "Growth rate", "icon": "📈"}],
-      "highlight": "A key takeaway sentence highlighted visually"
+      "content": ["Point 1", "Point 2"],
+      "notes": "Speaker notes",
+      "layout": "title|content|two-column|quote|closing|stats|highlight|process|comparison|bigNumber",
+      "icon": "emoji",
+      "stats": [{"value": "95%", "label": "Growth", "icon": "📈"}],
+      "highlight": "Key insight sentence",
+      "steps": [{"step": "Step name", "description": "What happens"}],
+      "comparison": {"left": {"title": "Option A", "points": ["pro1"]}, "right": {"title": "Option B", "points": ["pro1"]}},
+      "bigNumber": {"number": "3.2B", "suffix": "users", "context": "Explanation of significance"}
     }
   ]
 }
 
-SLIDE LAYOUT RULES:
-- "title": First slide. Eye-catching title + subtitle. Always include icon.
-- "closing": Last slide. Call-to-action or thank you.
-- "stats": Use for slides with numerical data. MUST include "stats" array with 2-4 items. Each stat has "value" (short number/percentage), "label" (description), "icon" (emoji). Also include 1-2 bullet points in "content".
-- "highlight": Use for key insights. MUST include "highlight" field with a powerful one-liner. Include 2-3 supporting bullet points in "content".
-- "quote": Impactful quote. Title is the quote text, first content item is attribution.
-- "two-column": Use for comparisons or pros/cons. 4-6 bullet points split into 2 columns.
-- "content": Standard bullets with icon. 3-5 concise bullet points.
+LAYOUT TYPES (use ALL of them for variety):
 
-CRITICAL DESIGN RULES:
-- At least 2 slides MUST use "stats" layout with real/realistic data
-- At least 1 slide MUST use "highlight" layout
-- At least 1 slide MUST use "quote" layout  
-- Every slide MUST have an "icon" emoji that represents its topic
-- Bullet points must be concise (max 12 words)
-- Stats values should be impactful numbers (percentages, multipliers, currency)
-- Make content professional, specific, and data-driven — avoid generic statements
-- Speaker notes should add context not visible on the slide`;
+1. "title" - FIRST slide only. Bold title + subtitle. Must have icon.
+2. "closing" - LAST slide only. CTA or thank you. Must have icon.
+3. "bigNumber" - ONE massive number that shocks. Must include "bigNumber" with {number, suffix, context}. Great for opening impact after title.
+4. "stats" - Dashboard-style with 3-4 metric cards. Must include "stats" array. Each stat: {value, label, icon}.
+5. "highlight" - Key insight with accent box. Must include "highlight" string + 2-3 supporting "content" bullets.
+6. "process" - Step-by-step flow (3-5 steps). Must include "steps" array: [{step, description}]. Shows numbered sequence.
+7. "comparison" - Side-by-side analysis. Must include "comparison" with {left: {title, points[]}, right: {title, points[]}}.
+8. "quote" - Powerful quote. Title = quote text, content[0] = attribution.
+9. "two-column" - 4-6 bullet points split into columns.
+10. "content" - Standard bullets with 3-5 concise points.
+
+MANDATORY DIVERSITY RULES:
+- Slide 1: MUST be "title"
+- Slide 2: MUST be "bigNumber" (set the tone with a shocking number)
+- Must have at least 2 "stats" slides
+- Must have at least 1 "process" slide  
+- Must have at least 1 "comparison" slide
+- Must have at least 1 "highlight" slide
+- Must have at least 1 "quote" slide
+- Last slide: MUST be "closing"
+- NO two consecutive slides should have the same layout
+- Every slide MUST have an "icon" emoji
+
+CONTENT QUALITY RULES:
+- Stats values: Use specific, impactful numbers ("+347%", "$4.2M", "10x", "99.7%")
+- BigNumber: The number should be jaw-dropping and relevant
+- Process steps: Clear, actionable, numbered progression
+- Comparison: Fair, balanced analysis with real trade-offs
+- Quotes: Attribute to real, well-known people when possible
+- Bullet points: Max 10 words each, specific and data-backed
+- Speaker notes: 2-3 sentences adding context not on the slide
+- Make everything feel like a TED talk or McKinsey presentation`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -66,7 +86,7 @@ CRITICAL DESIGN RULES:
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `Create a visually rich, data-driven presentation about: ${topic}` },
+          { role: "user", content: `Create a stunning, data-rich presentation about: ${topic}` },
         ],
       }),
     });
@@ -74,14 +94,12 @@ CRITICAL DESIGN RULES:
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again in a moment." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "Credits required. Please add funds." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const t = await response.text();

@@ -132,10 +132,16 @@ export interface GeneratedSlide {
   title: string;
   content: string[];
   notes?: string;
-  layout: "title" | "content" | "two-column" | "image" | "quote" | "closing" | "stats" | "highlight";
+  layout: "title" | "content" | "two-column" | "image" | "quote" | "closing" | "stats" | "highlight" | "process" | "comparison" | "bigNumber";
   stats?: StatItem[];
   highlight?: string;
   icon?: string;
+  /** Process layout: numbered steps */
+  steps?: { step: string; description: string }[];
+  /** Comparison layout */
+  comparison?: { left: { title: string; points: string[] }; right: { title: string; points: string[] } };
+  /** Big number layout */
+  bigNumber?: { number: string; suffix?: string; context: string };
 }
 
 export interface GeneratedPresentation {
