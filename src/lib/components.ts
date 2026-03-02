@@ -172,7 +172,7 @@ export function createStatCard(options: ComponentOptions & {
     x: x + 0.1,
     y: y + 0.1,
     w: w - 0.2,
-    text: value,
+    text: options.value,
     fontSize: 32,
     fontFace: "Poppins",
     color: colors.accent,
@@ -186,7 +186,7 @@ export function createStatCard(options: ComponentOptions & {
     x: x + 0.1,
     y: y + 0.8,
     w: w - 0.2,
-    text: label,
+    text: options.label,
     fontSize: 11,
     fontFace: "Poppins",
     color: "AAAAAA",
@@ -233,7 +233,7 @@ export function createHighlightBox(options: ComponentOptions & {
     x: x + 0.3,
     y: y + 0.2,
     w: w - 0.4,
-    text,
+    text: options.text,
     fontSize: 16,
     fontFace: "Poppins",
     color: "FFFFFF",
@@ -382,6 +382,7 @@ export function buildContentWithCards(
   if (extraBullets.length > 0) {
     elements.push(...createBulletList({
       x: 0.8,
+      y: 4.5,
       w: 8.4,
       items: extraBullets,
       startY: 4.5,
@@ -483,6 +484,7 @@ export function buildHighlightSlide(
   // Bullets abaixo
   elements.push(...createBulletList({
     x: 0.8,
+    y: 3.5,
     w: 8.4,
     items: bullets,
     startY: 3.5,
