@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Wand2, ChevronLeft, ChevronRight, RotateCcw, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import SlidePreview from "@/components/SlidePreview";
 import SlideViewer from "@/components/SlideViewer";
 import PresentationExporter from "@/components/PresentationExporter";
 import { SlideTemplate, GeneratedPresentation } from "@/data/templates";
+import { buildPptxDocument } from "@/lib/buildPptxDocument";
 
 const Index = () => {
   const { toast } = useToast();
@@ -17,6 +18,11 @@ const Index = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [presentation, setPresentation] = useState<GeneratedPresentation | null>(null);
   const [activeSlide, setActiveSlide] = useState(0);
+
+  const ptDocument = useMemo(() => {
+    if (!presentation) return null;
+    return buildPptxDocument(presentation);
+  }, [presentation]);
 
   const handleGenerate = async (topic: string) => {
     if (!selectedTemplate) {
@@ -154,7 +160,7 @@ const Index = () => {
                 {presentation.slides.map((_, i) => (
                   <SlidePreview
                     key={i}
-                    document={presentation}
+                    document={ptDocument!}
                     template={presentation.template}
                     index={i}
                     total={presentation.slides.length}
