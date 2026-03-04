@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import PromptInput from "@/components/PromptInput";
 import TemplateSelector from "@/components/TemplateSelector";
 import SlidePreview from "@/components/SlidePreview";
-import SlideViewer from "@/components/SlideViewer";
+
 import PresentationExporter from "@/components/PresentationExporter";
 import { SlideTemplate, GeneratedPresentation } from "@/data/templates";
 import { buildPptxDocument } from "@/lib/buildPptxDocument";
@@ -95,7 +95,7 @@ const Index = () => {
                   <Button variant="ghost" size="sm" onClick={handleReset} className="text-muted-foreground">
                     <RotateCcw className="h-4 w-4 mr-1" /> Nova
                   </Button>
-                  <PresentationExporter presentation={presentation} />
+                  <PresentationExporter document={ptDocument!} title={presentation.title} />
                 </>
               )}
             </div>
@@ -172,11 +172,12 @@ const Index = () => {
 
               {/* Main slide */}
               <div className="flex-1 flex flex-col gap-4">
-                <SlideViewer
-                  slide={presentation.slides[activeSlide]}
+                <SlidePreview
+                  document={ptDocument!}
                   template={presentation.template}
                   index={activeSlide}
                   total={presentation.slides.length}
+                  mode="canvas"
                 />
 
                 {/* Navigation */}
