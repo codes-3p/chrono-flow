@@ -11,7 +11,8 @@ function hexNoHash(hex: string): string {
 }
 
 export function buildPptxDocument(presentation: GeneratedPresentation): PtDocument {
-  const { title, subtitle, slides, template } = presentation;
+  const { title, subtitle, template } = presentation;
+  const slides = presentation.slides || [];
   const primary = hexNoHash(template.colors.primary);
   const secondary = hexNoHash(template.colors.secondary);
   const accent = hexNoHash(template.colors.accent);
@@ -21,6 +22,7 @@ export function buildPptxDocument(presentation: GeneratedPresentation): PtDocume
   const out: PtDocument = { slides: [] };
 
   slides.forEach((slide, index) => {
+    const content = slide.content || [];
     const elements: PtElement[] = [];
     const isCover = slide.layout === "title" || slide.layout === "closing";
     const isQuote = slide.layout === "quote";
@@ -41,7 +43,7 @@ export function buildPptxDocument(presentation: GeneratedPresentation): PtDocume
 
     if (isCover) {
       const slideTitle = index === 0 ? title || slide.title : slide.title;
-      const slideSubtitle = index === 0 ? subtitle || slide.content[0] || "" : slide.content[0] || "";
+      const slideSubtitle = index === 0 ? subtitle || content[0] || "" : content[0] || "";
       elements.push({
         type: "text", x: 0.5, y: 2.0, w: 9,
         text: slideTitle, fontSize: 44, fontFace: "Arial",
@@ -62,7 +64,7 @@ export function buildPptxDocument(presentation: GeneratedPresentation): PtDocume
       });
       elements.push({
         type: "text", x: 0.5, y: 2.0, w: 9,
-        text: slide.bigNumber?.number || slide.content[0] || "",
+        text: slide.bigNumber?.number || content[0] || "",
         fontSize: 60, fontFace: "Arial",
         color: accent, bold: true, align: "center",
       });
@@ -79,10 +81,10 @@ export function buildPptxDocument(presentation: GeneratedPresentation): PtDocume
         text: `"${slide.title}"`, fontSize: 26, fontFace: "Arial",
         color: white, italic: true, align: "center",
       });
-      if (slide.content.length > 0) {
+      if (content.length > 0) {
         elements.push({
           type: "text", x: 0.8, y: 4.3, w: 8.8,
-          text: `— ${slide.content[0]}`, fontSize: 14, fontFace: "Arial",
+          text: `— ${content[0]}`, fontSize: 14, fontFace: "Arial",
           color: accent, align: "center",
         });
       }
@@ -111,7 +113,7 @@ export function buildPptxDocument(presentation: GeneratedPresentation): PtDocume
           color: "AAAAAA", align: "center",
         });
       });
-      slide.content.forEach((line, i) => {
+      content.forEach((line, i) => {
         elements.push({
           type: "text", x: 1.0, y: 3.4 + i * 0.38, w: 8.6,
           text: line, fontSize: 14, fontFace: "Arial",
@@ -193,7 +195,7 @@ export function buildPptxDocument(presentation: GeneratedPresentation): PtDocume
           color: white, bold: true,
         });
       }
-      slide.content.forEach((line, i) => {
+      content.forEach((line, i) => {
         elements.push({
           type: "text", x: 1.0, y: 3.2 + i * 0.38, w: 8.4,
           text: line, fontSize: 14, fontFace: "Arial",
@@ -214,9 +216,9 @@ export function buildPptxDocument(presentation: GeneratedPresentation): PtDocume
       });
 
       const isTwoCol = slide.layout === "two-column";
-      if (slide.content.length > 0) {
+      if (content.length > 0) {
         if (!isTwoCol) {
-          slide.content.forEach((line, i) => {
+          content.forEach((line, i) => {
             elements.push({
               type: "text", x: 1.0, y: 2.0 + i * 0.42, w: 8.6,
               text: line, fontSize: 16, fontFace: "Arial",
@@ -224,9 +226,9 @@ export function buildPptxDocument(presentation: GeneratedPresentation): PtDocume
             });
           });
         } else {
-          const mid = Math.ceil(slide.content.length / 2);
-          const left = slide.content.slice(0, mid);
-          const right = slide.content.slice(mid);
+          const mid = Math.ceil(content.length / 2);
+          const left = content.slice(0, mid);
+          const right = content.slice(mid);
           left.forEach((line, i) => {
             elements.push({
               type: "text", x: 0.9, y: 2.0 + i * 0.38, w: 4.0,
