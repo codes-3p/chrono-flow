@@ -39,6 +39,8 @@ const PresentationExporter = ({ presentation }: PresentationExporterProps) => {
         // Background
         s.background = { fill: secondaryHex };
 
+        const content = slide.content || [];
+
         if (isCover) {
           s.addShape(pptx.ShapeType.rect, {
             x: 0, y: 0, w: W, h: H,
@@ -89,8 +91,8 @@ const PresentationExporter = ({ presentation }: PresentationExporterProps) => {
             fill: { color: accentHex },
             line: { color: accentHex, transparency: 100 },
           });
-          if (slide.content.length > 0) {
-            s.addText(slide.content[0], {
+          if (content.length > 0) {
+            s.addText(content[0], {
               x: 2.5, y: (slide.icon ? H * 0.32 : H * 0.28) + 2.3, w: W - 5, h: 0.8,
               fontSize: 18, fontFace: "Arial",
               color: "FFFFFF", transparency: 40,
@@ -112,7 +114,7 @@ const PresentationExporter = ({ presentation }: PresentationExporterProps) => {
             color: "FFFFFF", transparency: 50,
             align: "center", bold: true,
           });
-          const bigNum = slide.bigNumber?.number || slide.content[0] || "";
+          const bigNum = slide.bigNumber?.number || content[0] || "";
           const suffix = slide.bigNumber?.suffix || "";
           s.addText([
             { text: bigNum, options: { fontSize: 72, bold: true, color: accentHex } },
@@ -128,7 +130,7 @@ const PresentationExporter = ({ presentation }: PresentationExporterProps) => {
             fill: { color: accentHex, transparency: 40 },
             line: { color: accentHex, transparency: 100 },
           });
-          const context = slide.bigNumber?.context || slide.content[1] || "";
+          const context = slide.bigNumber?.context || content[1] || "";
           if (context) {
             s.addText(context, {
               x: 2.5, y: H * 0.3 + 2.5, w: W - 5, h: 0.8,
@@ -152,14 +154,14 @@ const PresentationExporter = ({ presentation }: PresentationExporterProps) => {
             italic: true, align: "center", valign: "middle",
             lineSpacingMultiple: 1.4,
           });
-          if (slide.content.length > 0) {
+          if (content.length > 0) {
             // Decorative lines around attribution
             s.addShape(pptx.ShapeType.rect, {
               x: W / 2 - 2, y: 5.4, w: 0.6, h: 0.02,
               fill: { color: accentHex },
               line: { color: accentHex, transparency: 100 },
             });
-            s.addText(slide.content[0], {
+            s.addText(content[0], {
               x: W / 2 - 1.2, y: 5.2, w: 2.4, h: 0.5,
               fontSize: 13, fontFace: "Arial",
               color: accentHex, align: "center", bold: true,
@@ -216,7 +218,7 @@ const PresentationExporter = ({ presentation }: PresentationExporterProps) => {
             });
           });
 
-          addBullets(s, pptx, slide.content, padX, cardY + cardH + 0.3, W, accentHex);
+          addBullets(s, pptx, content, padX, cardY + cardH + 0.3, W, accentHex);
 
         } else if (isHighlight) {
           // ═══ HIGHLIGHT ═══
@@ -245,7 +247,7 @@ const PresentationExporter = ({ presentation }: PresentationExporterProps) => {
               valign: "middle", lineSpacingMultiple: 1.3,
             });
 
-            addBullets(s, pptx, slide.content, padX, hlY + hlH + 0.3, W, accentHex);
+            addBullets(s, pptx, content, padX, hlY + hlH + 0.3, W, accentHex);
           }
 
         } else if (isProcess) {
@@ -358,9 +360,9 @@ const PresentationExporter = ({ presentation }: PresentationExporterProps) => {
           const contentTop = padY + 1.3;
           const isTwo = slide.layout === "two-column";
           const colW = isTwo ? (W - padX * 2 - 0.5) / 2 : W - padX * 2;
-          const itemCount = Math.max(slide.content.length, 1);
+          const itemCount = Math.max(content.length, 1);
 
-          slide.content.forEach((item, i) => {
+          content.forEach((item, i) => {
             let col: number, row: number;
             if (isTwo) {
               const perCol = Math.ceil(itemCount / 2);
