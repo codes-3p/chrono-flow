@@ -1,10 +1,12 @@
 /**
- * SlidePreview: Preview visual de slides usando o modelo PtDocument
- * Este componente renderiza os elementos conforme definidos no modelo
+ * SlidePreview – Designer-Grade Preview Renderer
+ * Renders PtDocument elements with full visual fidelity including
+ * gradients, rounded rects, ellipses, shadows, and layered compositions.
  */
 
 import { motion } from "framer-motion";
-import { PtDocument, PtElement, PtShapeElement, inchToPctX, inchToPctY } from "@/lib/pptxModel";
+import type { PtDocument, PtElement, PtShapeElement, PtTextElement, PtGradientFill } from "@/lib/pptxModel";
+import { inchToPctX, inchToPctY } from "@/lib/pptxModel";
 
 interface SlidePreviewProps {
   document: PtDocument;
@@ -18,40 +20,48 @@ interface SlidePreviewProps {
   mode?: "thumbnail" | "canvas";
 }
 
-function normalizeColor(color: string): string {
+/* ── Color helpers ── */
+
+function norm(color: string): string {
   if (!color) return "#000000";
   return color.startsWith("#") ? color : `#${color}`;
 }
 
+function gradientCSS(g: PtGradientFill): string {
+  const stops = g.stops.map(s => `${norm(s.color)} ${s.position}%`).join(", ");
+  if (g.type === "radial") return `radial-gradient(circle, ${stops})`;
+  return `linear-gradient(${g.angle || 135}deg, ${stops})`;
+}
+
+function parseAlpha(hex: string): { color: string; opacity: number } {
+  const clean = hex.replace("#", "");
+  if (clean.length === 8) {
+    const rgb = clean.slice(0, 6);
+    const alpha = parseInt(clean.slice(6, 8), 16) / 255;
+    return { color: `#${rgb}`, opacity: alpha };
+  }
+  return { color: norm(hex), opacity: 1 };
+}
+
+/* ── Component ── */
+
 const SlidePreview = ({
-  document,
-  template,
-  index,
-  total,
-  isActive = false,
-  onClick,
-  mode = "thumbnail",
+  document, template, index, total,
+  isActive = false, onClick, mode = "thumbnail",
 }: SlidePreviewProps) => {
   const slide = document.slides[index];
-  const isThumbnail = mode === "thumbnail";
-
   if (!slide) return null;
 
+  const isThumbnail = mode === "thumbnail";
   const { elements, background, backgroundGradient } = slide;
 
   let bgStyle: React.CSSProperties = {};
   if (backgroundGradient) {
-    if (backgroundGradient.type === "linear") {
-      bgStyle.background = `linear-gradient(${backgroundGradient.angle || 135}deg, ${backgroundGradient.colors
-        .map((c) => normalizeColor(c))
-        .join(", ")})`;
-    } else {
-      bgStyle.background = `radial-gradient(circle, ${backgroundGradient.colors.map((c) => normalizeColor(c)).join(", ")})`;
-    }
+    bgStyle.background = gradientCSS(backgroundGradient);
   } else if (background) {
-    bgStyle.background = normalizeColor(background);
+    bgStyle.background = norm(background);
   } else {
-    bgStyle.background = normalizeColor(template.colors.secondary);
+    bgStyle.background = norm(template.colors.secondary);
   }
 
   const className = isThumbnail
@@ -64,87 +74,111 @@ const SlidePreview = ({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
+      transition={{ delay: isThumbnail ? index * 0.03 : 0, duration: 0.3 }}
       className={className}
       style={bgStyle}
       onClick={onClick}
     >
       {elements.map((el, i) => (
-        <SlideElement key={i} element={el} />
+        <ElementRenderer key={i} element={el} />
       ))}
-
-      <div className="absolute bottom-2 right-3 text-xs text-white/30 font-mono pointer-events-none">
-        {index + 1} / {total}
-      </div>
     </motion.div>
   );
 };
 
-function SlideElement({ element }: { element: PtElement }) {
-  if (element.type === "text") {
-    const textColor = element.color ? (element.color.startsWith("#") ? element.color : `#${element.color}`) : "#FFFFFF";
+/* ── Element Renderers ── */
 
-    return (
-      <div
-        className="absolute whitespace-pre-wrap"
-        style={{
-          left: `${inchToPctX(element.x)}%`,
-          top: `${inchToPctY(element.y)}%`,
-          width: `${inchToPctX(element.w)}%`,
-          height: element.h ? `${inchToPctY(element.h)}%` : "auto",
-          fontSize: element.fontSize ? `${element.fontSize * 0.26}rem` : undefined,
-          fontFamily: element.fontFace || "Arial, sans-serif",
-          color: textColor,
-          fontWeight: element.bold ? "bold" : "normal",
-          fontStyle: element.italic ? "italic" : "normal",
-          textAlign: element.align || "left",
-          paddingLeft: element.bullet ? "1em" : 0,
-          opacity: element.opacity ?? 1,
-        }}
-      >
-        {element.bullet && (
-          <span className="absolute left-0" style={{ color: textColor }}>
-            •
-          </span>
-        )}
-        {element.text}
-      </div>
-    );
+function ElementRenderer({ element }: { element: PtElement }) {
+  if (element.type === "text") return <TextElement el={element} />;
+  return <ShapeElement el={element} />;
+}
+
+function TextElement({ el }: { el: PtTextElement }) {
+  const { color: textColor, opacity: textOpacity } = parseAlpha(el.color || "FFFFFF");
+
+  const style: React.CSSProperties = {
+    position: "absolute",
+    left: `${inchToPctX(el.x)}%`,
+    top: `${inchToPctY(el.y)}%`,
+    width: `${inchToPctX(el.w)}%`,
+    height: el.h ? `${inchToPctY(el.h)}%` : "auto",
+    fontSize: el.fontSize ? `${el.fontSize * 0.26}rem` : undefined,
+    fontFamily: el.fontFace || "Calibri, Arial, sans-serif",
+    color: textColor,
+    fontWeight: el.bold ? "bold" : "normal",
+    fontStyle: el.italic ? "italic" : "normal",
+    textAlign: el.align || "left",
+    opacity: (el.opacity ?? 1) * textOpacity,
+    letterSpacing: el.charSpacing ? `${el.charSpacing * 0.3}px` : undefined,
+    lineHeight: el.lineSpacingPt ? `${el.lineSpacingPt * 0.065}rem` : undefined,
+    display: "flex",
+    alignItems: el.valign === "middle" ? "center" : el.valign === "bottom" ? "flex-end" : "flex-start",
+    justifyContent: el.align === "center" ? "center" : el.align === "right" ? "flex-end" : "flex-start",
+    whiteSpace: "pre-wrap",
+    overflow: "hidden",
+  };
+
+  if (el.bullet) {
+    style.paddingLeft = "1.2em";
   }
-
-  const shape = element as PtShapeElement;
-  const shapeColor = shape.fill.startsWith("#") ? shape.fill : `#${shape.fill}`;
-
-  let backgroundColor = shapeColor;
-  let opacity = 1;
-
-  const hexWithOpacity = shapeColor.match(/^#?([0-9A-F]{6})([0-9A-F]{2})$/i);
-  if (hexWithOpacity) {
-    const [, hex, alpha] = hexWithOpacity;
-    backgroundColor = `#${hex}`;
-    opacity = parseInt(alpha, 16) / 255;
-  }
-
-  const strokeColor = shape.stroke ? (shape.stroke.startsWith("#") ? shape.stroke : `#${shape.stroke}`) : undefined;
 
   return (
-    <div
-      className="absolute"
-      style={{
-        left: `${inchToPctX(shape.x)}%`,
-        top: `${inchToPctY(shape.y)}%`,
-        width: `${inchToPctX(shape.w)}%`,
-        height: `${inchToPctY(shape.h)}%`,
-        backgroundColor,
-        opacity,
-        borderRadius: shape.borderRadius ? `${shape.borderRadius}px` : "0",
-        border: strokeColor ? `${shape.strokeWidth || 1}px solid ${strokeColor}` : "none",
-      }}
-    />
+    <div style={style}>
+      {el.bullet && (
+        <span style={{ position: "absolute", left: "0.2em", color: textColor }}>•</span>
+      )}
+      <span>{el.text}</span>
+    </div>
   );
 }
 
-export default SlidePreview;
+function ShapeElement({ el }: { el: PtShapeElement }) {
+  const { color: bgColor, opacity: bgOpacity } = el.fill ? parseAlpha(el.fill) : { color: "transparent", opacity: 1 };
 
+  let background: string = bgColor;
+  if (el.gradient) {
+    background = gradientCSS(el.gradient);
+  }
+
+  const borderRadius =
+    el.shape === "ellipse" ? "50%" :
+    el.shape === "roundRect" ? `${(el.rectRadius || 0.15) * 40}px` :
+    "0";
+
+  const strokeParsed = el.stroke ? parseAlpha(el.stroke) : null;
+
+  const style: React.CSSProperties = {
+    position: "absolute",
+    left: `${inchToPctX(el.x)}%`,
+    top: `${inchToPctY(el.y)}%`,
+    width: `${inchToPctX(el.w)}%`,
+    height: `${inchToPctY(el.h)}%`,
+    background: el.gradient ? background : undefined,
+    backgroundColor: !el.gradient ? bgColor : undefined,
+    opacity: (el.opacity ?? 1) * bgOpacity,
+    borderRadius,
+    border: strokeParsed
+      ? `${el.strokeWidth || 1}px solid ${strokeParsed.color}`
+      : "none",
+    transform: el.rotate ? `rotate(${el.rotate}deg)` : undefined,
+  };
+
+  // Shadow
+  if (el.shadow) {
+    const sc = parseAlpha(el.shadow.color || "000000");
+    const blur = el.shadow.blur || 10;
+    const offset = el.shadow.offset || 4;
+    const op = el.shadow.opacity ?? 0.3;
+    if (el.shadow.type === "inner") {
+      style.boxShadow = `inset 0 ${offset}px ${blur}px rgba(0,0,0,${op})`;
+    } else {
+      style.boxShadow = `0 ${offset}px ${blur}px rgba(0,0,0,${op})`;
+    }
+  }
+
+  return <div style={style} />;
+}
+
+export default SlidePreview;
