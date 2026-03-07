@@ -7,7 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 import PromptInput from "@/components/PromptInput";
 import TemplateSelector from "@/components/TemplateSelector";
 import SlidePreview from "@/components/SlidePreview";
-
 import PresentationExporter from "@/components/PresentationExporter";
 import { SlideTemplate, GeneratedPresentation } from "@/data/templates";
 import { buildPptxDocument } from "@/lib/buildPptxDocument";
@@ -19,6 +18,7 @@ const Index = () => {
   const [presentation, setPresentation] = useState<GeneratedPresentation | null>(null);
   const [activeSlide, setActiveSlide] = useState(0);
 
+  // PtDocument only needed for PPTX export
   const ptDocument = useMemo(() => {
     if (!presentation) return null;
     return buildPptxDocument(presentation);
@@ -160,8 +160,7 @@ const Index = () => {
                 {presentation.slides.map((_, i) => (
                   <SlidePreview
                     key={i}
-                    document={ptDocument!}
-                    template={presentation.template}
+                    presentation={presentation}
                     index={i}
                     total={presentation.slides.length}
                     isActive={i === activeSlide}
@@ -173,8 +172,7 @@ const Index = () => {
               {/* Main slide */}
               <div className="flex-1 flex flex-col gap-4">
                 <SlidePreview
-                  document={ptDocument!}
-                  template={presentation.template}
+                  presentation={presentation}
                   index={activeSlide}
                   total={presentation.slides.length}
                   mode="canvas"
