@@ -95,7 +95,7 @@ const Index = () => {
                   <Button variant="ghost" size="sm" onClick={handleReset} className="text-muted-foreground">
                     <RotateCcw className="h-4 w-4 mr-1" /> Nova
                   </Button>
-                  <PresentationExporter document={ptDocument!} title={presentation.title} />
+                  <PresentationExporter presentation={presentation} document={ptDocument!} title={presentation.title} />
                 </>
               )}
             </div>
