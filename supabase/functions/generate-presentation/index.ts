@@ -10,15 +10,19 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { topic, template, slideCount, language } = await req.json();
+    const { topic, template, slideCount, language, model, sourceText } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    const aiModel = model || "google/gemini-3-flash-preview";
+    const numSlides = slideCount || 10;
+    const lang = language || "pt-BR";
+
     const systemPrompt = `You are a world-class presentation designer at a top design agency (like McKinsey, Apple Keynote level). You create stunning, data-rich, visually diverse presentations that captivate audiences.
 
-Generate a presentation with exactly ${slideCount || 10} slides in JSON format.
-Language: ${language || "pt-BR"}
+Generate a presentation with exactly ${numSlides} slides in JSON format.
+Language: ${lang}
 Template style: ${template?.style || "modern"}
 
 Return ONLY valid JSON with this structure:
@@ -76,6 +80,10 @@ CONTENT QUALITY RULES:
 - Speaker notes: 2-3 sentences adding context not on the slide
 - Make everything feel like a TED talk or McKinsey presentation`;
 
+    const userMessage = sourceText
+      ? `Create a stunning presentation based on this content:\n\n${sourceText.slice(0, 30000)}`
+      : `Create a stunning, data-rich presentation about: ${topic}`;
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -83,22 +91,22 @@ CONTENT QUALITY RULES:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: aiModel,
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `Create a stunning, data-rich presentation about: ${topic}` },
+          { role: "user", content: userMessage },
         ],
       }),
     });
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again in a moment." }), {
+        return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em instantes." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Credits required. Please add funds." }), {
+        return new Response(JSON.stringify({ error: "Créditos necessários. Adicione fundos ao workspace." }), {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
