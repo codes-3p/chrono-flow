@@ -11,7 +11,7 @@ import TemplateSelector from "@/components/TemplateSelector";
 import LanguageSelector from "@/components/LanguageSelector";
 import ModelSelector from "@/components/ModelSelector";
 import PageCountSelector from "@/components/PageCountSelector";
-import { SlideTemplate, GeneratedPresentation } from "@/data/templates";
+import { SlideTemplate, GeneratedPresentation, slideTemplates } from "@/data/templates";
 import { Layers } from "lucide-react";
 
 const suggestions = [
