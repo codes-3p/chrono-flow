@@ -12,8 +12,9 @@ const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, 
 function createCaptureHost() {
   const host = document.createElement("div");
   host.setAttribute("data-slide-capture", "true");
-  // Use visibility:hidden instead of off-screen positioning
-  // This ensures the browser fully renders and paints the element
+  // Position fixed but hide with clip-path so the browser still fully paints
+  // the element. Do NOT use opacity:0 — html-to-image clones computed styles
+  // and would produce a transparent (blank) capture.
   host.style.position = "fixed";
   host.style.left = "0";
   host.style.top = "0";
@@ -21,7 +22,7 @@ function createCaptureHost() {
   host.style.height = `${CAPTURE_HEIGHT}px`;
   host.style.overflow = "hidden";
   host.style.zIndex = "-9999";
-  host.style.opacity = "0";
+  host.style.clipPath = "inset(100%)";
   host.style.pointerEvents = "none";
   document.body.appendChild(host);
   return host;
