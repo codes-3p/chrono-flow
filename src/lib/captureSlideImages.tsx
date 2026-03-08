@@ -85,7 +85,7 @@ export async function capturePresentationSlides(presentation: GeneratedPresentat
           canvasWidth: CAPTURE_WIDTH * 2,
           canvasHeight: CAPTURE_HEIGHT * 2,
           skipAutoScale: true,
-          includeQuerySelector: "[data-slide-capture]",
+          
         });
 
         if (!isLikelyBlank(dataUrl)) break;
