@@ -222,3 +222,26 @@ export async function exportPptxDocument(document: PtDocument, title: string) {
 
   await pptx.writeFile({ fileName: safeFileName(title) });
 }
+
+export async function exportPptxFromSlideImages(slideImages: string[], title: string) {
+  if (!slideImages.length) {
+    throw new Error("Nenhum slide foi capturado para exportação.");
+  }
+
+  const pptx = new pptxgen();
+  pptx.defineLayout({ name: PPT_LAYOUT_NAME, width: 10, height: 5.625 });
+  pptx.layout = PPT_LAYOUT_NAME;
+
+  slideImages.forEach((imageData) => {
+    const slide = pptx.addSlide();
+    slide.addImage({
+      data: imageData,
+      x: 0,
+      y: 0,
+      w: 10,
+      h: 5.625,
+    });
+  });
+
+  await pptx.writeFile({ fileName: safeFileName(title) });
+}
