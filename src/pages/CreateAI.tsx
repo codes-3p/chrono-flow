@@ -29,7 +29,7 @@ const CreateAI = () => {
   const [tab, setTab] = useState<string>("topic");
   const [topic, setTopic] = useState("");
   const [pasteText, setPasteText] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState<SlideTemplate | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<SlideTemplate | null>(slideTemplates[0] || null);
   const [language, setLanguage] = useState("pt-BR");
   const [model, setModel] = useState("google/gemini-3-flash-preview");
   const [slideCount, setSlideCount] = useState(10);
