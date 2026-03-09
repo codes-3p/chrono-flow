@@ -8,6 +8,7 @@ import CreateAI from "./pages/CreateAI";
 import CreateFromFile from "./pages/CreateFromFile";
 import BeautifySlides from "./pages/BeautifySlides";
 import PresentationView from "./pages/PresentationView";
+import SharedPresentation from "./pages/SharedPresentation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/create/file" element={<CreateFromFile />} />
           <Route path="/create/beautify" element={<BeautifySlides />} />
           <Route path="/presentation" element={<PresentationView />} />
+          <Route path="/shared/:shareId" element={<SharedPresentation />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

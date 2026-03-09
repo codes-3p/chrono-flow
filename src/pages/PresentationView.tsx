@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, RotateCcw, Layers, ArrowLeft, Play, Share2, FileDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw, Layers, ArrowLeft, Play, Share2, FileDown, Link, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,6 +9,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import SlidePreview from "@/components/SlidePreview";
+import SlideEditor from "@/components/SlideEditor";
+import PresentationExporter from "@/components/PresentationExporter";
+import FullscreenPresenter from "@/components/FullscreenPresenter";
+import { GeneratedPresentation, GeneratedSlide } from "@/data/templates";
+import { buildPptxDocument } from "@/lib/buildPptxDocument";
+import { exportPdfFromSlideImages } from "@/lib/exportPdfDocument";
+import { capturePresentationSlides } from "@/lib/captureSlideImages";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import SlidePreview from "@/components/SlidePreview";
 import SlideEditor from "@/components/SlideEditor";
 import PresentationExporter from "@/components/PresentationExporter";
