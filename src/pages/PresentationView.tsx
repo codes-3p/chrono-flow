@@ -58,6 +58,29 @@ const PresentationView = () => {
     }
   };
 
+  const handleShare = async () => {
+    if (!presentation) return;
+    setIsSharing(true);
+    try {
+      const { data, error } = await supabase
+        .from("shared_presentations")
+        .insert({ title: presentation.title, data: presentation as any })
+        .select("share_id")
+        .single();
+
+      if (error) throw error;
+
+      const shareUrl = `${window.location.origin}/shared/${data.share_id}`;
+      await navigator.clipboard.writeText(shareUrl);
+      toast({ title: "Link copiado!", description: "O link de compartilhamento foi copiado para a area de transferencia." });
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: "Erro ao compartilhar", description: err.message || "Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   if (!presentation) {
     return (
       <div className="min-h-screen gradient-surface flex items-center justify-center">
