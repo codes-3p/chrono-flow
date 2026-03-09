@@ -135,6 +135,16 @@ const PresentationView = () => {
                 <Play className="h-4 w-4" /> Apresentar
               </Button>
 
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleShare}
+                disabled={isSharing}
+                className="text-muted-foreground gap-1.5"
+              >
+                <Share2 className="h-4 w-4" /> {isSharing ? "..." : "Compartilhar"}
+              </Button>
+
               <Button variant="ghost" size="sm" onClick={() => navigate("/create/ai")} className="text-muted-foreground">
                 <RotateCcw className="h-4 w-4 mr-1" /> Nova
               </Button>
