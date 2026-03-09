@@ -121,8 +121,31 @@ CONTENT QUALITY RULES:
     let jsonStr = raw;
     const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) jsonStr = jsonMatch[1];
+    jsonStr = jsonStr.trim();
 
-    const presentation = JSON.parse(jsonStr.trim());
+    // Try to fix truncated JSON by closing open brackets/braces
+    let presentation;
+    try {
+      presentation = JSON.parse(jsonStr);
+    } catch (_parseErr) {
+      console.warn("Initial parse failed, attempting to repair JSON...");
+      // Remove trailing comma if present
+      let repaired = jsonStr.replace(/,\s*$/, "");
+      // Count open vs close brackets/braces
+      const openBraces = (repaired.match(/{/g) || []).length;
+      const closeBraces = (repaired.match(/}/g) || []).length;
+      const openBrackets = (repaired.match(/\[/g) || []).length;
+      const closeBrackets = (repaired.match(/\]/g) || []).length;
+      // Close unclosed structures
+      for (let i = 0; i < openBrackets - closeBrackets; i++) repaired += "]";
+      for (let i = 0; i < openBraces - closeBraces; i++) repaired += "}";
+      try {
+        presentation = JSON.parse(repaired);
+      } catch (finalErr) {
+        console.error("JSON repair failed. Raw content (first 2000 chars):", raw.slice(0, 2000));
+        throw new Error("A IA retornou uma resposta incompleta. Tente novamente.");
+      }
+    }
 
     return new Response(JSON.stringify(presentation), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
