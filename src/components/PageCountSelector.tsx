@@ -1,6 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const pageCounts = [5, 8, 10, 12, 15, 20, 25, 30, 40, 50];
+const pageCounts = [1, 3, 5, 8, 10, 12, 15, 20, 25, 30, 40, 50, 60, 75];
 
 interface PageCountSelectorProps {
   value: number;
