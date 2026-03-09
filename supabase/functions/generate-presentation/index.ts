@@ -46,10 +46,10 @@ Return ONLY valid JSON with this structure:
 
 LAYOUT TYPES (use ALL of them for variety):
 
-1. "title" - FIRST slide only. Bold title + subtitle. Must have icon.
-2. "closing" - LAST slide only. CTA or thank you. Must have icon.
+1. "title" - FIRST slide only. Bold title + subtitle.
+2. "closing" - LAST slide only. CTA or thank you.
 3. "bigNumber" - ONE massive number that shocks. Must include "bigNumber" with {number, suffix, context}. Great for opening impact after title.
-4. "stats" - Dashboard-style with 3-4 metric cards. Must include "stats" array. Each stat: {value, label, icon}.
+4. "stats" - Dashboard-style with 3-4 metric cards. Must include "stats" array. Each stat: {value, label}.
 5. "highlight" - Key insight with accent box. Must include "highlight" string + 2-3 supporting "content" bullets.
 6. "process" - Step-by-step flow (3-5 steps). Must include "steps" array: [{step, description}]. Shows numbered sequence.
 7. "comparison" - Side-by-side analysis. Must include "comparison" with {left: {title, points[]}, right: {title, points[]}}.
