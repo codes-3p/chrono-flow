@@ -55,7 +55,7 @@ export async function exportPdfFromSlideImages(images: string[], title: string):
   // Build a minimal PDF manually
   const pdf = buildMinimalPdf(pageJpegs, slideWidth, slideHeight);
   const filename = `${title.replace(/[^a-zA-Z0-9\s-]/g, "").trim() || "presentation"}.pdf`;
-  downloadBlob(new Blob([pdf], { type: "application/pdf" }), filename);
+  downloadBlob(new Blob([pdf.buffer as ArrayBuffer], { type: "application/pdf" }), filename);
 }
 
 /**
