@@ -67,7 +67,7 @@ MANDATORY DIVERSITY RULES:
 - Must have at least 1 "quote" slide
 - Last slide: MUST be "closing"
 - NO two consecutive slides should have the same layout
-- Every slide MUST have an "icon" emoji
+- NEVER use emojis anywhere in the presentation (no icons, no emoji characters)
 
 CONTENT QUALITY RULES:
 - Stats values: Use specific, impactful numbers ("+347%", "$4.2M", "10x", "99.7%")
