@@ -16,13 +16,12 @@ function createCaptureHost() {
   // the element. Do NOT use opacity:0 — html-to-image clones computed styles
   // and would produce a transparent (blank) capture.
   host.style.position = "fixed";
-  host.style.left = "0";
+  host.style.left = `-${CAPTURE_WIDTH + 100}px`;
   host.style.top = "0";
   host.style.width = `${CAPTURE_WIDTH}px`;
   host.style.height = `${CAPTURE_HEIGHT}px`;
   host.style.overflow = "hidden";
   host.style.zIndex = "-9999";
-  host.style.clipPath = "inset(100%)";
   host.style.pointerEvents = "none";
   document.body.appendChild(host);
   return host;
