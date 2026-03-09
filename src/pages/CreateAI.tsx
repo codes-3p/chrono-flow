@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Wand2, ArrowLeft, ArrowRight, Loader2, Sparkles, FileText } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Wand2, ArrowLeft, ArrowRight, Loader2, Sparkles, FileText, ListTree, Pencil, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import TemplateSelector from "@/components/TemplateSelector";
@@ -14,12 +15,26 @@ import PageCountSelector from "@/components/PageCountSelector";
 import { SlideTemplate, GeneratedPresentation, slideTemplates } from "@/data/templates";
 import { Layers } from "lucide-react";
 
+interface OutlineItem {
+  slideNumber: number;
+  title: string;
+  layout: string;
+  keyPoints: string[];
+  notes?: string;
+}
+
+interface Outline {
+  title: string;
+  subtitle: string;
+  outline: OutlineItem[];
+}
+
 const suggestions = [
   "Pitch deck para startup de IA",
   "Plano de marketing digital 2025",
-  "Relatório trimestral de vendas",
-  "Workshop de liderança",
-  "Lançamento de produto SaaS",
+  "Relatorio trimestral de vendas",
+  "Workshop de lideranca",
+  "Lancamento de produto SaaS",
 ];
 
 const CreateAI = () => {
@@ -35,10 +50,84 @@ const CreateAI = () => {
   const [slideCount, setSlideCount] = useState(10);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const inputValue = tab === "topic" ? topic : pasteText;
-  const canGenerate = inputValue.trim().length > 0 && selectedTemplate && !isGenerating;
+  // Outline state
+  const [outline, setOutline] = useState<Outline | null>(null);
+  const [isGeneratingOutline, setIsGeneratingOutline] = useState(false);
+  const [editingOutlineIndex, setEditingOutlineIndex] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editPoints, setEditPoints] = useState("");
 
-  const handleGenerate = async () => {
+  const inputValue = tab === "topic" ? topic : pasteText;
+  const canGenerate = inputValue.trim().length > 0 && selectedTemplate && !isGenerating && !isGeneratingOutline;
+
+  const handleGenerateOutline = async () => {
+    if (!selectedTemplate || !inputValue.trim()) return;
+
+    setIsGeneratingOutline(true);
+    try {
+      const body: any = {
+        slideCount,
+        language,
+        model,
+      };
+
+      if (tab === "topic") {
+        body.topic = inputValue.trim();
+      } else {
+        body.topic = `Create based on: ${inputValue.trim()}`;
+        body.sourceText = inputValue.trim();
+      }
+
+      const { data, error } = await supabase.functions.invoke("generate-outline", { body });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      setOutline(data as Outline);
+      toast({ title: "Estrutura gerada!", description: "Revise e edite antes de gerar os slides finais." });
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: "Erro ao gerar estrutura", description: err.message || "Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsGeneratingOutline(false);
+    }
+  };
+
+  const handleGenerateFromOutline = async () => {
+    if (!selectedTemplate || !outline) return;
+
+    setIsGenerating(true);
+    try {
+      const outlineText = outline.outline
+        .map((item) => `Slide ${item.slideNumber} (${item.layout}): ${item.title}\n- ${item.keyPoints.join("\n- ")}`)
+        .join("\n\n");
+
+      const body = {
+        topic: `Generate presentation following this exact outline structure:\n\nTitle: ${outline.title}\nSubtitle: ${outline.subtitle}\n\n${outlineText}`,
+        sourceText: outlineText,
+        template: selectedTemplate,
+        slideCount: outline.outline.length,
+        language,
+        model,
+      };
+
+      const { data, error } = await supabase.functions.invoke("generate-presentation", { body });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      const presentation: GeneratedPresentation = { ...data, template: selectedTemplate };
+      toast({ title: "Apresentacao gerada!", description: `${data.slides.length} slides criados com sucesso.` });
+      navigate("/presentation", { state: { presentation } });
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: "Erro ao gerar", description: err.message || "Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleDirectGenerate = async () => {
     if (!selectedTemplate || !inputValue.trim()) return;
 
     setIsGenerating(true);
@@ -63,10 +152,7 @@ const CreateAI = () => {
       if (data.error) throw new Error(data.error);
 
       const presentation: GeneratedPresentation = { ...data, template: selectedTemplate };
-
-      toast({ title: "Apresentação gerada!", description: `${data.slides.length} slides criados com sucesso.` });
-
-      // Navigate to presentation view with state
+      toast({ title: "Apresentacao gerada!", description: `${data.slides.length} slides criados com sucesso.` });
       navigate("/presentation", { state: { presentation } });
     } catch (err: any) {
       console.error(err);
@@ -74,6 +160,34 @@ const CreateAI = () => {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const startEditOutlineItem = (index: number) => {
+    const item = outline!.outline[index];
+    setEditingOutlineIndex(index);
+    setEditTitle(item.title);
+    setEditPoints(item.keyPoints.join("\n"));
+  };
+
+  const saveOutlineItem = () => {
+    if (editingOutlineIndex === null || !outline) return;
+    const newOutline = [...outline.outline];
+    newOutline[editingOutlineIndex] = {
+      ...newOutline[editingOutlineIndex],
+      title: editTitle,
+      keyPoints: editPoints.split("\n").filter((l) => l.trim()),
+    };
+    setOutline({ ...outline, outline: newOutline });
+    setEditingOutlineIndex(null);
+  };
+
+  const removeOutlineItem = (index: number) => {
+    if (!outline) return;
+    const newItems = outline.outline.filter((_, i) => i !== index).map((item, i) => ({
+      ...item,
+      slideNumber: i + 1,
+    }));
+    setOutline({ ...outline, outline: newItems });
   };
 
   return (
@@ -96,7 +210,7 @@ const CreateAI = () => {
               </div>
               <div>
                 <h1 className="font-display text-lg font-bold text-foreground">Gerar com IA</h1>
-                <p className="text-[10px] text-muted-foreground -mt-0.5">Crie apresentações profissionais</p>
+                <p className="text-[10px] text-muted-foreground -mt-0.5">Crie apresentacoes profissionais</p>
               </div>
             </div>
           </div>
@@ -106,10 +220,10 @@ const CreateAI = () => {
           {/* Hero */}
           <motion.div className="text-center mb-10" initial={{ opacity: 0, y: -15 }} animate={{ opacity: 1, y: 0 }}>
             <h2 className="font-display text-2xl md:text-4xl font-bold text-foreground mb-2">
-              Do que será sua <span className="text-gradient">apresentação?</span>
+              Do que sera sua <span className="text-gradient">apresentacao?</span>
             </h2>
             <p className="text-muted-foreground text-sm">
-              Descreva o tema ou cole seu conteúdo e a IA cria slides profissionais
+              Descreva o tema ou cole seu conteudo e a IA cria slides profissionais
             </p>
           </motion.div>
 
@@ -141,10 +255,10 @@ const CreateAI = () => {
                         type="text"
                         value={topic}
                         onChange={(e) => setTopic(e.target.value)}
-                        placeholder="Sobre o que será sua apresentação?"
+                        placeholder="Sobre o que sera sua apresentacao?"
                         className="w-full bg-transparent pl-12 pr-4 py-4 text-foreground placeholder:text-muted-foreground focus:outline-none text-base font-medium"
-                        disabled={isGenerating}
-                        onKeyDown={(e) => e.key === "Enter" && canGenerate && handleGenerate()}
+                        disabled={isGenerating || isGeneratingOutline}
+                        onKeyDown={(e) => e.key === "Enter" && canGenerate && handleGenerateOutline()}
                       />
                     </div>
                   </div>
@@ -172,15 +286,15 @@ const CreateAI = () => {
                   <Textarea
                     value={pasteText}
                     onChange={(e) => setPasteText(e.target.value)}
-                    placeholder="Cole seu texto, artigo, notas ou conteúdo aqui... A IA vai estruturar em slides profissionais."
+                    placeholder="Cole seu texto, artigo, notas ou conteudo aqui... A IA vai estruturar em slides profissionais."
                     className="min-h-[180px] bg-transparent border-none text-foreground placeholder:text-muted-foreground focus-visible:ring-0 resize-none text-sm"
-                    disabled={isGenerating}
+                    disabled={isGenerating || isGeneratingOutline}
                   />
                   <div className="flex justify-between items-center mt-2">
                     <span className="text-xs text-muted-foreground">
                       {pasteText.split(/\s+/).filter(Boolean).length} palavras
                     </span>
-                    <span className="text-xs text-muted-foreground">Máximo recomendado: 15.000 palavras</span>
+                    <span className="text-xs text-muted-foreground">Maximo recomendado: 15.000 palavras</span>
                   </div>
                 </div>
               </TabsContent>
@@ -199,28 +313,47 @@ const CreateAI = () => {
             <LanguageSelector value={language} onChange={setLanguage} />
           </motion.div>
 
-          {/* Generate button */}
+          {/* Generate buttons */}
           <motion.div
-            className="max-w-3xl mx-auto flex justify-center mb-12"
+            className="max-w-3xl mx-auto flex flex-col sm:flex-row justify-center gap-3 mb-12"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.25 }}
           >
             <Button
-              onClick={handleGenerate}
+              onClick={handleGenerateOutline}
               disabled={!canGenerate}
               size="lg"
-              className="gradient-primary text-primary-foreground rounded-xl px-10 py-6 font-semibold text-base hover:opacity-90 transition-opacity gap-2"
+              variant="outline"
+              className="rounded-xl px-8 py-6 font-semibold text-base gap-2 border-border/60"
             >
-              {isGenerating ? (
+              {isGeneratingOutline ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  Gerando apresentação...
+                  Gerando estrutura...
+                </>
+              ) : (
+                <>
+                  <ListTree className="h-5 w-5" />
+                  Gerar Estrutura Primeiro
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={handleDirectGenerate}
+              disabled={!canGenerate}
+              size="lg"
+              className="gradient-primary text-primary-foreground rounded-xl px-8 py-6 font-semibold text-base hover:opacity-90 transition-opacity gap-2"
+            >
+              {isGenerating && !outline ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Gerando apresentacao...
                 </>
               ) : (
                 <>
                   <Wand2 className="h-5 w-5" />
-                  Gerar Apresentação
+                  Gerar Direto
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}
@@ -228,14 +361,119 @@ const CreateAI = () => {
           </motion.div>
 
           {/* Loading state */}
-          {isGenerating && (
+          {(isGenerating || isGeneratingOutline) && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mb-10">
               <div className="inline-flex items-center gap-3 glass px-6 py-3 rounded-full">
                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                <span className="text-sm text-muted-foreground">A IA está criando seus slides...</span>
+                <span className="text-sm text-muted-foreground">
+                  {isGeneratingOutline ? "Gerando estrutura..." : "A IA esta criando seus slides..."}
+                </span>
               </div>
             </motion.div>
           )}
+
+          {/* Outline preview */}
+          <AnimatePresence>
+            {outline && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="max-w-3xl mx-auto mb-12"
+              >
+                <div className="glass-strong rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-display text-lg font-bold text-foreground">{outline.title}</h3>
+                      <p className="text-sm text-muted-foreground">{outline.subtitle}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => setOutline(null)} className="text-muted-foreground gap-1">
+                        <X className="h-3.5 w-3.5" /> Descartar
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleGenerateFromOutline}
+                        disabled={isGenerating}
+                        className="gradient-primary text-primary-foreground gap-1.5"
+                      >
+                        {isGenerating ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Wand2 className="h-3.5 w-3.5" />
+                        )}
+                        Gerar Slides
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {outline.outline.map((item, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="flex gap-3 p-3 rounded-lg bg-secondary/50 group"
+                      >
+                        <div className="flex-shrink-0 w-8 h-8 rounded-lg gradient-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
+                          {item.slideNumber}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          {editingOutlineIndex === i ? (
+                            <div className="space-y-2">
+                              <Input
+                                value={editTitle}
+                                onChange={(e) => setEditTitle(e.target.value)}
+                                className="bg-background border-border text-sm"
+                              />
+                              <Textarea
+                                value={editPoints}
+                                onChange={(e) => setEditPoints(e.target.value)}
+                                rows={3}
+                                className="bg-background border-border text-sm resize-none"
+                                placeholder="Um topico por linha"
+                              />
+                              <div className="flex gap-1.5">
+                                <Button size="sm" variant="ghost" onClick={() => setEditingOutlineIndex(null)}>
+                                  <X className="h-3 w-3" />
+                                </Button>
+                                <Button size="sm" onClick={saveOutlineItem} className="gradient-primary text-primary-foreground">
+                                  <Check className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{item.layout}</span>
+                              </div>
+                              <ul className="mt-1 space-y-0.5">
+                                {item.keyPoints.map((point, j) => (
+                                  <li key={j} className="text-xs text-muted-foreground">- {point}</li>
+                                ))}
+                              </ul>
+                            </>
+                          )}
+                        </div>
+                        {editingOutlineIndex !== i && (
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button size="sm" variant="ghost" onClick={() => startEditOutlineItem(i)} className="h-7 w-7 p-0">
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => removeOutlineItem(i)} className="h-7 w-7 p-0 text-destructive">
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Template selector */}
           <TemplateSelector selected={selectedTemplate} onSelect={setSelectedTemplate} />

@@ -1,32 +1,94 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, RotateCcw, Layers, ArrowLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw, Layers, ArrowLeft, Play, Share2, FileDown, Link, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import SlidePreview from "@/components/SlidePreview";
+import SlideEditor from "@/components/SlideEditor";
 import PresentationExporter from "@/components/PresentationExporter";
-import { GeneratedPresentation } from "@/data/templates";
+import FullscreenPresenter from "@/components/FullscreenPresenter";
+import { GeneratedPresentation, GeneratedSlide } from "@/data/templates";
 import { buildPptxDocument } from "@/lib/buildPptxDocument";
+import { exportPdfFromSlideImages } from "@/lib/exportPdfDocument";
+import { capturePresentationSlides } from "@/lib/captureSlideImages";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const PresentationView = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const presentation = (location.state as any)?.presentation as GeneratedPresentation | undefined;
+  const { toast } = useToast();
+  const initialPresentation = (location.state as any)?.presentation as GeneratedPresentation | undefined;
+  const [presentation, setPresentation] = useState<GeneratedPresentation | undefined>(initialPresentation);
   const [activeSlide, setActiveSlide] = useState(0);
+  const [isPresenting, setIsPresenting] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
 
   const ptDocument = useMemo(() => {
     if (!presentation) return null;
     return buildPptxDocument(presentation);
   }, [presentation]);
 
+  const handleSlideUpdate = useCallback((index: number, updated: GeneratedSlide) => {
+    if (!presentation) return;
+    const newSlides = [...presentation.slides];
+    newSlides[index] = updated;
+    setPresentation({ ...presentation, slides: newSlides });
+  }, [presentation]);
+
+  const handleExportPdf = async () => {
+    if (!presentation) return;
+    setIsExportingPdf(true);
+    try {
+      const images = await capturePresentationSlides(presentation);
+      await exportPdfFromSlideImages(images, presentation.title);
+      toast({ title: "PDF exportado", description: "Download iniciado com sucesso." });
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: "Erro ao exportar PDF", description: err.message || "Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!presentation) return;
+    setIsSharing(true);
+    try {
+      const { data, error } = await supabase
+        .from("shared_presentations")
+        .insert({ title: presentation.title, data: presentation as any })
+        .select("share_id")
+        .single();
+
+      if (error) throw error;
+
+      const shareUrl = `${window.location.origin}/shared/${data.share_id}`;
+      await navigator.clipboard.writeText(shareUrl);
+      toast({ title: "Link copiado!", description: "O link de compartilhamento foi copiado para a area de transferencia." });
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: "Erro ao compartilhar", description: err.message || "Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   if (!presentation) {
     return (
       <div className="min-h-screen gradient-surface flex items-center justify-center">
         <div className="text-center">
-          <h2 className="font-display text-xl font-bold text-foreground mb-3">Nenhuma apresentação carregada</h2>
-          <p className="text-sm text-muted-foreground mb-6">Gere uma apresentação primeiro para visualizar aqui.</p>
+          <h2 className="font-display text-xl font-bold text-foreground mb-3">Nenhuma apresentacao carregada</h2>
+          <p className="text-sm text-muted-foreground mb-6">Gere uma apresentacao primeiro para visualizar aqui.</p>
           <Button onClick={() => navigate("/")} className="gradient-primary text-primary-foreground">
-            <ArrowLeft className="h-4 w-4 mr-2" /> Voltar ao início
+            <ArrowLeft className="h-4 w-4 mr-2" /> Voltar ao inicio
           </Button>
         </div>
       </div>
@@ -64,10 +126,47 @@ const PresentationView = () => {
             </div>
 
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsPresenting(true)}
+                className="text-muted-foreground gap-1.5"
+              >
+                <Play className="h-4 w-4" /> Apresentar
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleShare}
+                disabled={isSharing}
+                className="text-muted-foreground gap-1.5"
+              >
+                <Share2 className="h-4 w-4" /> {isSharing ? "..." : "Compartilhar"}
+              </Button>
+
               <Button variant="ghost" size="sm" onClick={() => navigate("/create/ai")} className="text-muted-foreground">
                 <RotateCcw className="h-4 w-4 mr-1" /> Nova
               </Button>
-              <PresentationExporter presentation={presentation} document={ptDocument!} title={presentation.title} />
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-muted-foreground gap-1.5">
+                    <FileDown className="h-4 w-4" /> Exportar
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <div className="w-full">
+                      <PresentationExporter presentation={presentation} document={ptDocument!} title={presentation.title} />
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportPdf} disabled={isExportingPdf}>
+                    <FileDown className="h-4 w-4 mr-2" />
+                    {isExportingPdf ? "Exportando PDF..." : "Exportar PDF"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>
@@ -135,6 +234,13 @@ const PresentationView = () => {
                 </Button>
               </div>
 
+              {/* Slide editor */}
+              <SlideEditor
+                slide={presentation.slides[activeSlide]}
+                index={activeSlide}
+                onSave={handleSlideUpdate}
+              />
+
               {/* Speaker notes */}
               {presentation.slides[activeSlide]?.notes && (
                 <motion.div
@@ -150,6 +256,15 @@ const PresentationView = () => {
           </div>
         </main>
       </div>
+
+      {/* Fullscreen presenter */}
+      {isPresenting && (
+        <FullscreenPresenter
+          presentation={presentation}
+          startSlide={activeSlide}
+          onExit={() => setIsPresenting(false)}
+        />
+      )}
     </div>
   );
 };
