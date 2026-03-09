@@ -29,6 +29,7 @@ const PresentationView = () => {
   const [activeSlide, setActiveSlide] = useState(0);
   const [isPresenting, setIsPresenting] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
 
   const ptDocument = useMemo(() => {
     if (!presentation) return null;
