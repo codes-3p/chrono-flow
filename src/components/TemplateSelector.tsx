@@ -5,6 +5,7 @@ import {
   Briefcase, GraduationCap, Palette, Cpu, Minus,
   TrendingUp, BarChart3, Target, BookOpen, Presentation,
   Image, Megaphone, Rocket, Code2, Sparkles,
+  Building2, Flame, Lightbulb, Zap, Diamond,
 } from "lucide-react";
 import { SlideTemplate, TemplateCategory, templateCategories, slideTemplates } from "@/data/templates";
 
@@ -12,6 +13,7 @@ const iconMap: Record<string, React.ElementType> = {
   Briefcase, GraduationCap, Palette, Cpu, Minus,
   TrendingUp, BarChart3, Target, BookOpen, Presentation,
   Image, Megaphone, Rocket, Code2, Sparkles,
+  Building2, Flame, Lightbulb, Zap, Diamond,
 };
 
 interface TemplateSelectorProps {
