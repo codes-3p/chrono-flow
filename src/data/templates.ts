@@ -7,6 +7,8 @@ export interface SlideTemplate {
   icon: string;
   colors: { primary: string; secondary: string; accent: string };
   style: string;
+  /** Whether the template uses a light background */
+  lightMode?: boolean;
 }
 
 export type TemplateCategory = "business" | "education" | "creative" | "tech" | "minimal";
