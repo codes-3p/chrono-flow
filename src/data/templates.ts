@@ -7,6 +7,8 @@ export interface SlideTemplate {
   icon: string;
   colors: { primary: string; secondary: string; accent: string };
   style: string;
+  /** Whether the template uses a light background */
+  lightMode?: boolean;
 }
 
 export type TemplateCategory = "business" | "education" | "creative" | "tech" | "minimal";
@@ -120,6 +122,60 @@ export const slideTemplates: SlideTemplate[] = [
     colors: { primary: "#64748B", secondary: "#0F0F0F", accent: "#E2E8F0" },
     style: "minimal",
   },
+  {
+    id: "corporate-light",
+    name: "Corporativo Claro",
+    category: "business",
+    description: "Design clean com fundo claro e tipografia elegante",
+    slideCount: 10,
+    icon: "Building2",
+    colors: { primary: "#1E40AF", secondary: "#F8FAFC", accent: "#3B82F6" },
+    style: "corporate",
+    lightMode: true,
+  },
+  {
+    id: "warm-proposal",
+    name: "Proposta Criativa",
+    category: "creative",
+    description: "Estilo quente e acolhedor para propostas e pitches",
+    slideCount: 10,
+    icon: "Flame",
+    colors: { primary: "#EA580C", secondary: "#FFFBEB", accent: "#F97316" },
+    style: "warm",
+    lightMode: true,
+  },
+  {
+    id: "edu-fresh",
+    name: "Educação Moderna",
+    category: "education",
+    description: "Design fresco e vibrante para aulas e workshops",
+    slideCount: 12,
+    icon: "Lightbulb",
+    colors: { primary: "#059669", secondary: "#F0FDF4", accent: "#10B981" },
+    style: "fresh",
+    lightMode: true,
+  },
+  {
+    id: "startup",
+    name: "Startup Deck",
+    category: "tech",
+    description: "Pitch deck moderno para startups e investidores",
+    slideCount: 12,
+    icon: "Zap",
+    colors: { primary: "#7C3AED", secondary: "#FAF5FF", accent: "#8B5CF6" },
+    style: "startup",
+    lightMode: true,
+  },
+  {
+    id: "elegant-dark",
+    name: "Elegante Escuro",
+    category: "minimal",
+    description: "Sofisticado com tipografia premium e contrastes sutis",
+    slideCount: 10,
+    icon: "Diamond",
+    colors: { primary: "#C084FC", secondary: "#09090B", accent: "#A855F7" },
+    style: "elegant",
+  },
 ];
 
 export interface StatItem {
@@ -132,7 +188,7 @@ export interface GeneratedSlide {
   title: string;
   content: string[];
   notes?: string;
-  layout: "title" | "content" | "two-column" | "image" | "quote" | "closing" | "stats" | "highlight" | "process" | "comparison" | "bigNumber";
+  layout: "title" | "content" | "two-column" | "image" | "quote" | "closing" | "stats" | "highlight" | "process" | "comparison" | "bigNumber" | "iconGrid" | "threeColumn" | "roadmap" | "team" | "swot" | "pyramid";
   stats?: StatItem[];
   highlight?: string;
   icon?: string;
@@ -142,6 +198,18 @@ export interface GeneratedSlide {
   comparison?: { left: { title: string; points: string[] }; right: { title: string; points: string[] } };
   /** Big number layout */
   bigNumber?: { number: string; suffix?: string; context: string };
+  /** Icon grid layout: features/services with icon+title+desc */
+  gridItems?: { icon: string; title: string; description: string }[];
+  /** Three column layout */
+  columns?: { title: string; points: string[] }[];
+  /** Roadmap/timeline layout */
+  milestones?: { phase: string; title: string; description: string }[];
+  /** Team layout */
+  members?: { name: string; role: string; description: string }[];
+  /** SWOT layout */
+  swot?: { strengths: string[]; weaknesses: string[]; opportunities: string[]; threats: string[] };
+  /** Pyramid layout */
+  pyramidLevels?: { label: string; description: string }[];
 }
 
 export interface GeneratedPresentation {
