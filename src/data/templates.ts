@@ -132,7 +132,7 @@ export interface GeneratedSlide {
   title: string;
   content: string[];
   notes?: string;
-  layout: "title" | "content" | "two-column" | "image" | "quote" | "closing" | "stats" | "highlight" | "process" | "comparison" | "bigNumber";
+  layout: "title" | "content" | "two-column" | "image" | "quote" | "closing" | "stats" | "highlight" | "process" | "comparison" | "bigNumber" | "iconGrid" | "threeColumn" | "roadmap" | "team" | "swot" | "pyramid";
   stats?: StatItem[];
   highlight?: string;
   icon?: string;
@@ -142,6 +142,18 @@ export interface GeneratedSlide {
   comparison?: { left: { title: string; points: string[] }; right: { title: string; points: string[] } };
   /** Big number layout */
   bigNumber?: { number: string; suffix?: string; context: string };
+  /** Icon grid layout: features/services with icon+title+desc */
+  gridItems?: { icon: string; title: string; description: string }[];
+  /** Three column layout */
+  columns?: { title: string; points: string[] }[];
+  /** Roadmap/timeline layout */
+  milestones?: { phase: string; title: string; description: string }[];
+  /** Team layout */
+  members?: { name: string; role: string; description: string }[];
+  /** SWOT layout */
+  swot?: { strengths: string[]; weaknesses: string[]; opportunities: string[]; threats: string[] };
+  /** Pyramid layout */
+  pyramidLevels?: { label: string; description: string }[];
 }
 
 export interface GeneratedPresentation {
